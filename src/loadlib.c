@@ -98,7 +98,16 @@ static void setprogdir (lua_State *L) {
   char buff[MAX_PATH + 1];
   char *lb;
   DWORD nsize = sizeof(buff)/sizeof(char);
-  DWORD n = GetModuleFileNameA(NULL, buff, nsize);
+  DWORD n;
+
+#ifdef UNICODE
+  wchar_t wbuff[MAX_PATH + 1];
+  n = GetModuleFileNameW(NULL, wbuff, nsize);
+  wcstombs( buff, wbuff, n );
+#else
+  n = GetModuleFileNameA(NULL, buff, nsize);
+#endif
+
   if (n == 0 || n == nsize || (lb = strrchr(buff, '\\')) == NULL)
     luaL_error(L, "unable to get ModuleFileName");
   else {
@@ -112,9 +121,21 @@ static void setprogdir (lua_State *L) {
 static void pusherror (lua_State *L) {
   int error = GetLastError();
   char buffer[128];
+#ifdef UNICODE
+  wchar_t wbuffer[128];
+  if (FormatMessageW(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM,
+      NULL, error, 0, wbuffer, sizeof(wbuffer), NULL))
+  {  
+    wcstombs( buffer, wbuffer, wcslen(wbuffer));
+    lua_pushstring(L, buffer);
+  }
+#else
   if (FormatMessageA(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM,
       NULL, error, 0, buffer, sizeof(buffer), NULL))
-    lua_pushstring(L, buffer);
+    {
+      lua_pushstring(L, buffer);
+    }
+#endif
   else
     lua_pushfstring(L, "system error %d\n", error);
 }
@@ -125,14 +146,34 @@ static void ll_unloadlib (void *lib) {
 
 
 static void *ll_load (lua_State *L, const char *path) {
-  HINSTANCE lib = LoadLibraryA(path);
+  HINSTANCE lib;
+#ifdef UNICODE
+  int len = strlen(path);
+  wchar_t * wpath = malloc( len+1 );
+  mbstowcs( wpath, path, len );
+  wpath[len] = 0;
+  lib = LoadLibraryW(wpath);
+  free(wpath);
+#else
+  lib = LoadLibraryA(path);
+#endif
   if (lib == NULL) pusherror(L);
   return lib;
 }
 
 
 static lua_CFunction ll_sym (lua_State *L, void *lib, const char *sym) {
+#ifdef UNICODE
+  lua_CFunction f;
+  int len = strlen(sym);
+  wchar_t * wsym = malloc( len+1 );
+  mbstowcs( wsym, sym, len );
+  wsym[len] = 0;
+  f = (lua_CFunction)GetProcAddressW((HINSTANCE)lib, wsym);
+  free(wsym);
+#else
   lua_CFunction f = (lua_CFunction)GetProcAddress((HINSTANCE)lib, sym);
+#endif
   if (f == NULL) pusherror(L);
   return f;
 }

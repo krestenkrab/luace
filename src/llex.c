@@ -23,7 +23,9 @@
 #include "ltable.h"
 #include "lzio.h"
 
-
+#ifdef _WIN32_WCE
+#define localeconv() NULL
+#endif
 
 #define next(ls) (ls->current = zgetc(ls->z))
 

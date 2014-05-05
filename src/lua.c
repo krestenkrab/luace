@@ -17,6 +17,7 @@
 #include "lualib.h"
 
 
+#include <windows.h>
 
 static lua_State *globalL = NULL;
 
@@ -58,6 +59,21 @@ static void l_message (const char *pname, const char *msg) {
   if (pname) fprintf(stderr, "%s: ", pname);
   fprintf(stderr, "%s\n", msg);
   fflush(stderr);
+#ifdef _WIN32_WCE
+  if (!pname) { pname = "lua"; }
+
+  {
+    int len1 = strlen(pname);
+    int len2 = strlen(msg);
+    wchar_t *out = malloc((sizeof (wchar_t)) * (len1 + len2 + 3));
+    int end = mbstowcs(out, pname, len1);
+    out[end+0] = ':';
+    out[end+1] = ' ';
+    end = mbstowcs(out+end+2, msg, len2);
+    OutputDebugStringW(out);
+    free(out);
+  }
+#endif
 }
 
 
@@ -344,7 +360,7 @@ static int pmain (lua_State *L) {
   globalL = L;
   if (argv[0] && argv[0][0]) progname = argv[0];
   lua_gc(L, LUA_GCSTOP, 0);  /* stop collector during initialization */
-  luaL_openlibs(L);  /* open libraries */
+  luaL_openlibs(L);  /* open libraries */  
   lua_gc(L, LUA_GCRESTART, 0);
   s->status = handle_luainit(L);
   if (s->status != 0) return 0;
