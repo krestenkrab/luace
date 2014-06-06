@@ -14,7 +14,9 @@
 
 
 #include "luaconf.h"
+#ifdef _WIN32_WCE
 #include "luace.h"
+#endif
 
 
 #define LUA_VERSION	"Lua 5.1"
@@ -235,7 +237,7 @@ LUA_API int (lua_gc) (lua_State *L, int what, int data);
 ** miscellaneous functions
 */
 
-LUA_API int   (lua_error) (lua_State *L);
+LUA_API int   (lua_error) (lua_State *L) NORETURN_DECL;
 
 LUA_API int   (lua_next) (lua_State *L, int idx);
 
