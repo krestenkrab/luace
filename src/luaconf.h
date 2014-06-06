@@ -44,7 +44,13 @@
 #define LUA_DL_DYLD		/* does not need extra library */
 #endif
 
-
+#ifdef __clang__
+#define NORETURN_DECL __attribute((noreturn))
+#define NORETURN(X) (void)(X)
+#else
+#define NORETURN_DECL
+#define NORETURN(X) return X
+#endif
 
 /*
 @@ LUA_USE_POSIX includes all functionallity listed as X/Open System
