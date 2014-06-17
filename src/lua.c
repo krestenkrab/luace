@@ -16,8 +16,9 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 static lua_State *globalL = NULL;
 
